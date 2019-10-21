@@ -1,27 +1,26 @@
 // author: Gary A. Stafford
 // site: https://programmaticponderings.com
 // license: MIT License
-// purpose: RESTful Go implementation of the RAKE algorithm, by https://github.com/afjoseph/RAKE.Go
+// purpose: RESTful Go implementation of the RAKE (Rapid Automatic Keyword Extraction) algorithm
+//          by https://github.com/afjoseph/RAKE.Go
 
 package main
 
 import (
 	"encoding/json"
-	rake "github.com/garystafford/RAKE.Go"
 	"net/http"
+	"os"
+
+	rake "github.com/garystafford/RAKE.Go"
 
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 )
 
-const (
-	port = ":8080"
-)
-
-// Keyword represents a candidate and its score
+// A Keyword represents an individual keyword candidate and its score.
 type Keyword struct {
-	Candidate string  `json:"candidate"`
-	Score     float64 `json:"score"`
+	Candidate string  `json:"candidate"` // The keyword.
+	Score     float64 `json:"score"`     //The keyword's score.
 }
 
 func handler(c echo.Context) error {
@@ -43,12 +42,18 @@ func handler(c echo.Context) error {
 }
 
 func main() {
+	port := os.Getenv("RAKE_PORT")
+
 	// Echo instance
 	e := echo.New()
 
 	// Middleware
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
+
+	e.Use(middleware.KeyAuth(func(key string, c echo.Context) (bool, error) {
+		return key == os.Getenv("AUTH_KEY"), nil
+	}))
 
 	// Routes
 	e.POST("/keywords", handler)
