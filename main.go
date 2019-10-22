@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"os"
+	"strings"
 
 	rake "github.com/garystafford/RAKE.Go"
 
@@ -17,10 +18,10 @@ import (
 	"github.com/labstack/echo/middleware"
 )
 
-// A Keyword represents an individual keyword candidate and its score.
+// A Keyword represents an individual Keyword Candidate and its Score.
 type Keyword struct {
-	Candidate string  `json:"candidate"` // The keyword.
-	Score     float64 `json:"score"`     //The keyword's score.
+	Candidate string  `json:"Candidate"` // The Keyword.
+	Score     float64 `json:"Score"`     //The Keyword's Score.
 }
 
 func handler(c echo.Context) error {
@@ -32,9 +33,9 @@ func handler(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, nil)
 	} else {
 		text := jsonMap["text"]
-		candidates := rake.RunRake(text.(string))
-		for _, candidate := range candidates {
-			keywords = append(keywords, Keyword{Candidate: candidate.Key, Score: candidate.Value})
+		rakeCandidates := rake.RunRake(text.(string))
+		for _, rakeCandidate := range rakeCandidates {
+			keywords = append(keywords, Keyword{Candidate: rakeCandidate.Key, Score: rakeCandidate.Value})
 		}
 	}
 
@@ -51,13 +52,33 @@ func main() {
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
 
-	e.Use(middleware.KeyAuth(func(key string, c echo.Context) (bool, error) {
-		return key == os.Getenv("AUTH_KEY"), nil
+	e.Use(middleware.KeyAuthWithConfig(middleware.KeyAuthConfig{
+		Skipper: func(c echo.Context) bool {
+			if strings.HasPrefix(c.Request().RequestURI, "/health") {
+				return true
+			}
+			return false
+		},
+		Validator: func(key string, c echo.Context) (bool, error) {
+			return key == os.Getenv("AUTH_KEY"), nil
+		},
 	}))
 
 	// Routes
+	e.GET("/health", getHealth)
 	e.POST("/keywords", handler)
 
 	// Start server
 	e.Logger.Fatal(e.Start(port))
 }
+
+func getHealth(c echo.Context) error {
+	var response interface{}
+	err := json.Unmarshal([]byte(`{"status":"UP"}`), &response)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError)
+	}
+
+	return c.JSON(http.StatusOK, response)
+}
+
