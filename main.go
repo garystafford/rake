@@ -25,7 +25,7 @@ type Keyword struct {
 }
 
 var (
-	portClient = getEnv("RAKE_PORT", "8080")
+	portClient = getEnv("RAKE_PORT", "8081")
 )
 
 func main() {
