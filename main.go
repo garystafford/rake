@@ -25,7 +25,7 @@ type Keyword struct {
 }
 
 var (
-	portClient = os.Getenv("RAKE_PORT")
+	portClient = getEnv("RAKE_PORT", "8080")
 )
 
 func main() {
@@ -56,6 +56,13 @@ func main() {
 	e.Logger.Fatal(e.Start(portClient))
 }
 
+func getEnv(key, fallback string) string {
+	if value, ok := os.LookupEnv(key); ok {
+		return value
+	}
+	return fallback
+}
+
 func getHealth(c echo.Context) error {
 	var response interface{}
 	err := json.Unmarshal([]byte(`{"status":"UP"}`), &response)
@@ -79,7 +86,7 @@ func getKeywords(c echo.Context) error {
 		for _, rakeCandidate := range rakeCandidates {
 			keywords = append(keywords, Keyword{
 				Candidate: rakeCandidate.Key,
-				Score: rakeCandidate.Value,
+				Score:     rakeCandidate.Value,
 			})
 		}
 	}
