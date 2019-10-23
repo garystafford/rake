@@ -20,31 +20,15 @@ import (
 
 // A Keyword represents an individual Keyword Candidate and its Score.
 type Keyword struct {
-	Candidate string  `json:"Candidate"` // The Keyword.
-	Score     float64 `json:"Score"`     //The Keyword's Score.
+	Candidate string  `json:"candidate"` // The Keyword.
+	Score     float64 `json:"score"`     //The Keyword's Score.
 }
 
-func handler(c echo.Context) error {
-	var keywords []Keyword
-
-	jsonMap := make(map[string]interface{})
-	err := json.NewDecoder(c.Request().Body).Decode(&jsonMap)
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, nil)
-	} else {
-		text := jsonMap["text"]
-		rakeCandidates := rake.RunRake(text.(string))
-		for _, rakeCandidate := range rakeCandidates {
-			keywords = append(keywords, Keyword{Candidate: rakeCandidate.Key, Score: rakeCandidate.Value})
-		}
-	}
-
-	return c.JSON(http.StatusOK, keywords)
-}
+var (
+	portClient = os.Getenv("RAKE_PORT")
+)
 
 func main() {
-	port := os.Getenv("RAKE_PORT")
-
 	// Echo instance
 	e := echo.New()
 
@@ -66,10 +50,10 @@ func main() {
 
 	// Routes
 	e.GET("/health", getHealth)
-	e.POST("/keywords", handler)
+	e.POST("/keywords", getKeywords)
 
 	// Start server
-	e.Logger.Fatal(e.Start(port))
+	e.Logger.Fatal(e.Start(portClient))
 }
 
 func getHealth(c echo.Context) error {
@@ -82,3 +66,23 @@ func getHealth(c echo.Context) error {
 	return c.JSON(http.StatusOK, response)
 }
 
+func getKeywords(c echo.Context) error {
+	var keywords []Keyword
+
+	jsonMap := make(map[string]interface{})
+	err := json.NewDecoder(c.Request().Body).Decode(&jsonMap)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, nil)
+	} else {
+		text := jsonMap["text"]
+		rakeCandidates := rake.RunRake(text.(string))
+		for _, rakeCandidate := range rakeCandidates {
+			keywords = append(keywords, Keyword{
+				Candidate: rakeCandidate.Key,
+				Score: rakeCandidate.Value,
+			})
+		}
+	}
+
+	return c.JSON(http.StatusOK, keywords)
+}
