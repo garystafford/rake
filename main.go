@@ -25,7 +25,7 @@ type Keyword struct {
 }
 
 var (
-	portClient = getEnv("RAKE_PORT", "8081")
+	serverPort = ":" + getEnv("RAKE_PORT", ":8081")
 )
 
 func main() {
@@ -53,7 +53,7 @@ func main() {
 	e.POST("/keywords", getKeywords)
 
 	// Start server
-	e.Logger.Fatal(e.Start(portClient))
+	e.Logger.Fatal(e.Start(serverPort))
 }
 
 func getEnv(key, fallback string) string {
