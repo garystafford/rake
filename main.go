@@ -12,7 +12,7 @@ import (
 	"os"
 	"strings"
 
-	rake "github.com/garystafford/RAKE.Go"
+	rake "github.com/afjoseph/RAKE.Go"
 
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
@@ -25,7 +25,7 @@ type Keyword struct {
 }
 
 var (
-	serverPort = ":" + getEnv("RAKE_PORT", ":8081")
+	serverPort = ":" + getEnv("RAKE_PORT", "8081")
 )
 
 func main() {
