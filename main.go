@@ -23,7 +23,7 @@ type Keyword struct {
 }
 
 var (
-	serverPort = ":" + getEnv("RAKE_PORT", "8081")
+	serverPort = ":" + getEnv("RAKE_PORT", "8080")
 )
 
 func main() {
