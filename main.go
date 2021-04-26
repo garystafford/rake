@@ -4,6 +4,7 @@
 // purpose: RESTful Go implementation of github.com/afjoseph/RAKE.Go package
 //          implements the RAKE (Rapid Automatic Keyword Extraction) algorithm
 //          by https://github.com/afjoseph/RAKE.Go
+// modified: 2021-04-25
 
 package main
 
