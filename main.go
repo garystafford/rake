@@ -4,21 +4,20 @@
 // purpose: RESTful Go implementation of github.com/afjoseph/RAKE.Go package
 //          implements the RAKE (Rapid Automatic Keyword Extraction) algorithm
 //          by https://github.com/afjoseph/RAKE.Go
-// modified: 2021-04-25
+// modified: 2021-06-13
 
 package main
 
 import (
 	"encoding/json"
 	rake "github.com/afjoseph/RAKE.Go"
-	"github.com/sirupsen/logrus"
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
+	"github.com/labstack/gommon/log"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
-	"time"
-
-	"github.com/labstack/echo"
-	"github.com/labstack/echo/middleware"
 )
 
 // A Keyword represents an individual Keyword Candidate and its Score.
@@ -28,48 +27,11 @@ type Keyword struct {
 }
 
 var (
-	serverPort = ":" + getEnv("RAKE_PORT", "8080")
-	apiKey     = getEnv("API_KEY", "")
-	log        = logrus.New()
-
-	// Echo instance
-	e = echo.New()
+	logLevel   = getEnv("LOG_LEVEL", "1") // INFO
+	serverPort = getEnv("RAKE_PORT", ":8080")
+	apiKey     = getEnv("API_KEY", "ChangeMe")
+	e          = echo.New()
 )
-
-func init() {
-	log.Formatter = &logrus.JSONFormatter{
-		TimestampFormat: time.RFC3339Nano,
-	}
-	log.Out = os.Stdout
-	log.SetLevel(logrus.DebugLevel)
-}
-
-func main() {
-	// Middleware
-	e.Use(middleware.Logger())
-	e.Use(middleware.Recover())
-
-	e.Use(middleware.KeyAuthWithConfig(middleware.KeyAuthConfig{
-		KeyLookup: "header:X-API-Key",
-		Skipper: func(c echo.Context) bool {
-			if strings.HasPrefix(c.Request().RequestURI, "/health") {
-				return true
-			}
-			return false
-		},
-		Validator: func(key string, c echo.Context) (bool, error) {
-			log.Debugf("API_KEY: %v", apiKey)
-			return key == apiKey, nil
-		},
-	}))
-
-	// Routes
-	e.GET("/health", getHealth)
-	e.POST("/keywords", getKeywords)
-
-	// Start server
-	e.Logger.Fatal(e.Start(serverPort))
-}
 
 func getEnv(key, fallback string) string {
 	if value, ok := os.LookupEnv(key); ok {
@@ -110,4 +72,43 @@ func getKeywords(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, keywords)
+}
+
+func run() error {
+	// Middleware
+	e.Use(middleware.Logger())
+	e.Use(middleware.Recover())
+
+	e.Use(middleware.KeyAuthWithConfig(middleware.KeyAuthConfig{
+		KeyLookup: "header:X-API-Key",
+		Skipper: func(c echo.Context) bool {
+			if strings.HasPrefix(c.Request().RequestURI, "/health") {
+				return true
+			}
+			return false
+		},
+		Validator: func(key string, c echo.Context) (bool, error) {
+			e.Logger.Debugf("API_KEY: %v", apiKey)
+			return key == apiKey, nil
+		},
+	}))
+
+	// Routes
+	e.GET("/health", getHealth)
+	e.POST("/keywords", getKeywords)
+
+	// Start server
+	return e.Start(serverPort)
+}
+
+func init() {
+	level, _ := strconv.Atoi(logLevel)
+	e.Logger.SetLevel(log.Lvl(level))
+}
+
+func main() {
+	if err := run(); err != nil {
+		e.Logger.Fatal(err)
+		os.Exit(1)
+	}
 }
